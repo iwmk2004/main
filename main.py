@@ -1,11 +1,19 @@
-import os, requests, telebot
+import os
+import requests
+import telebot
 
-bot = telebot.TeleBot(os.getenv("7706743761:AAHO3-x0EZ-TTETMq5obr-OhKRzQhjqkFY0"))
-STEAM_ID = "76561198335549730"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+STEAM_ID = os.getenv("STEAM_ID")
+
+bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=["MMR"])
-def mmr(m):
-    d = requests.get(f"https://api.opendota.com/api/players/{STEAM_ID}").json()
-    bot.reply_to(m, f"MMR: {d['mmr_estimate']['estimate']}")
+def get_mmr(message):
+    data = requests.get(
+        f"https://api.opendota.com/api/players/{STEAM_ID}"
+    ).json()
+
+    mmr = data["mmr_estimate"]["estimate"]
+    bot.send_message(message.chat.id, f"MMR: {mmr}")
 
 bot.infinity_polling()
