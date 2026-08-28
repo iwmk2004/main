@@ -2,46 +2,42 @@ import os
 import requests
 import telebot
 
-bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 STEAM_ID = os.getenv("STEAM_ID")
 
-ranks = [
-    "Unranked",
-    "Herald",
-    "Guardian",
-    "Crusader",
-    "Archon",
-    "Legend",
-    "Ancient",
-    "Divine",
-    "Immortal"
-]
+bot = telebot.TeleBot(BOT_TOKEN)
 
-@bot.message_handler(commands=["MMR", "mmr"])
-def get_mmr(message):
+@bot.message_handler(commands=["last"])
+def last_game(message):
     try:
-        data = requests.get(
-            f"https://api.opendota.com/api/players/{STEAM_ID}",
-            timeout=10
-        ).json()
+        url = f"https://api.opendota.com/api/players/{STEAM_ID}/recentMatches"
+        games = requests.get(url, timeout=10).json()
 
-        tier = data.get("rank_tier")
-
-        if not tier:
-            bot.reply_to(message, "Ранг не найден")
+        if not games:
+            bot.reply_to(message, "Игр не найдено")
             return
 
-        rank = tier // 10
-        stars = tier % 10
+        game = games[0]
 
-        if rank >= 8:
-            text = "Immortal"
-        else:
-            text = f"{ranks[rank]} {stars}"
+        result = "Победа" if game["player_slot"] < 128 and game["radiant_win"] else \
+                 "Поражение" if game["player_slot"] < 128 else \
+                 "Поражение" if game["radiant_win"] else "Победа"
+
+        minutes = game["duration"] // 60
+        seconds = game["duration"] % 60
+
+        text = (
+            f"Последняя катка\n\n"
+            f"{result}\n"
+            f"Hero ID: {game['hero_id']}\n"
+            f"K/D/A: {game['kills']}/{game['deaths']}/{game['assists']}\n"
+            f"Длительность: {minutes}:{seconds:02d}\n"
+            f"Match ID: {game['match_id']}"
+        )
 
         bot.reply_to(message, text)
 
     except Exception as e:
-        bot.reply_to(message, "Ошибка получения ранга")
+        bot.reply_to(message, "Ошибка получения игры")
 
 bot.infinity_polling()
