@@ -2,18 +2,35 @@ import os
 import requests
 import telebot
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 STEAM_ID = os.getenv("STEAM_ID")
 
-bot = telebot.TeleBot(BOT_TOKEN)
+ranks = [
+    "Herald", "Guardian", "Crusader",
+    "Archon", "Legend", "Ancient",
+    "Divine", "Immortal"
+]
 
 @bot.message_handler(commands=["MMR"])
-def get_mmr(message):
+def mmr(message):
     data = requests.get(
         f"https://api.opendota.com/api/players/{STEAM_ID}"
     ).json()
 
-    mmr = data["mmr_estimate"]["estimate"]
-    bot.send_message(message.chat.id, f"MMR: {mmr}")
+    tier = data.get("rank_tier", 0)
+
+    if not tier:
+        bot.reply_to(message, "Ранг не найден")
+        return
+
+    medal = (tier // 10) - 1
+    stars = tier % 10
+
+    if medal >= 7:
+        rank = "Immortal"
+    else:
+        rank = f"{ranks[medal]} {stars}"
+
+    bot.reply_to(message, rank)
 
 bot.infinity_polling()
