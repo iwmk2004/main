@@ -6,31 +6,42 @@ bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 STEAM_ID = os.getenv("STEAM_ID")
 
 ranks = [
-    "Herald", "Guardian", "Crusader",
-    "Archon", "Legend", "Ancient",
-    "Divine", "Immortal"
+    "Unranked",
+    "Herald",
+    "Guardian",
+    "Crusader",
+    "Archon",
+    "Legend",
+    "Ancient",
+    "Divine",
+    "Immortal"
 ]
 
-@bot.message_handler(commands=["MMR"])
-def mmr(message):
-    data = requests.get(
-        f"https://api.opendota.com/api/players/{STEAM_ID}"
-    ).json()
+@bot.message_handler(commands=["MMR", "mmr"])
+def get_mmr(message):
+    try:
+        data = requests.get(
+            f"https://api.opendota.com/api/players/{STEAM_ID}",
+            timeout=10
+        ).json()
 
-    tier = data.get("rank_tier", 0)
+        tier = data.get("rank_tier")
 
-    if not tier:
-        bot.reply_to(message, "Ранг не найден")
-        return
+        if not tier:
+            bot.reply_to(message, "Ранг не найден")
+            return
 
-    medal = (tier // 10) - 1
-    stars = tier % 10
+        rank = tier // 10
+        stars = tier % 10
 
-    if medal >= 7:
-        rank = "Immortal"
-    else:
-        rank = f"{ranks[medal]} {stars}"
+        if rank >= 8:
+            text = "Immortal"
+        else:
+            text = f"{ranks[rank]} {stars}"
 
-    bot.reply_to(message, rank)
+        bot.reply_to(message, text)
+
+    except Exception as e:
+        bot.reply_to(message, "Ошибка получения ранга")
 
 bot.infinity_polling()
